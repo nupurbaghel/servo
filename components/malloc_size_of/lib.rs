@@ -831,7 +831,11 @@ malloc_size_of_is_0!(webrender_api::ExtendMode);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::FilterOp);
 #[cfg(feature = "servo")]
+malloc_size_of_is_0!(webrender_api::FontInstanceKey);
+#[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::GradientStop);
+#[cfg(feature = "servo")]
+malloc_size_of_is_0!(webrender_api::GlyphInstance);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(webrender_api::ImageBorder);
 #[cfg(feature = "servo")]
