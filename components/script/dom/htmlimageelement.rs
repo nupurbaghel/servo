@@ -922,7 +922,7 @@ impl HTMLImageElement {
         }
 
         // Step 6
-        if let Ok(img_url) = base_url.join(&String::from(src)) {
+        if let Ok(img_url) = base_url.join(&String::from(src.clone())) {
 
             // Step 7
             let corsAttributeState = self.GetCrossOrigin();
@@ -937,7 +937,7 @@ impl HTMLImageElement {
             // Step 12
             *self.pending_request.borrow_mut() = ImageRequest {
                 state: State::Unavailable,
-                parsed_url: Some(img_url),
+                parsed_url: Some(img_url.clone()),
                 source_url: None,
                 image: None,
                 metadata: None,
@@ -955,7 +955,7 @@ impl HTMLImageElement {
                                                    UsePlaceholder::No,
                                                    CanRequestImages::No);
 
-            if let Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) = response {
+            if let Ok(ImageOrMetadataAvailable::ImageAvailable(_image, _url)) = response {
 
             } else {
                 let window = window_from_node(self);
@@ -967,8 +967,21 @@ impl HTMLImageElement {
                                                        CanRequestImages::Yes);
                 match response {
                     // TODO Handle multipart/x-mixtape
-                    Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) => {
+                    Ok(ImageOrMetadataAvailable::ImageAvailable(_image, _url)) => {
 
+                    }
+                    // TODO required for making response exhaustive, but what should it return ?? 
+                    Ok(ImageOrMetadataAvailable::MetadataAvailable(_m)) => {
+                    
+                    }
+                    // TODO what here?
+                    Err(ImageState::Pending(_id)) => {
+                        //add_cache_listener_for_element(image_cache.clone(), id, self);
+                    }
+                    // TODO what here?
+                    Err(ImageState::NotRequested(_id)) => {
+                        //add_cache_listener_for_element(image_cache, id, self);
+                        //self.fetch_request(img_url, id);
                     }
 
                     Err(ImageState::LoadError) => {
@@ -988,7 +1001,7 @@ impl HTMLImageElement {
             }
 
             let this = Trusted::new(self);
-            let new_selected_source = selected_source.unwrap().to_string();
+            let new_selected_source = src.to_string();
             // Step 15
             let _ = window.dom_manipulation_task_source().queue(
                 task!(image_load_event: move || {
@@ -996,8 +1009,8 @@ impl HTMLImageElement {
                             // Step 15.1
                             if this.has_relevant_mutations() {
                                 let mut pending_request =
-                                    *this.pending_request.borrow_mut();
-                                    pending_request = ImageRequest {
+                                    &*this.pending_request.borrow_mut();
+                                    pending_request = &ImageRequest {
                                     state: State::Unavailable,
                                     parsed_url: None,
                                     source_url: None,
