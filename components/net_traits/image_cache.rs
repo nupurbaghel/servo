@@ -23,7 +23,7 @@ pub enum CanRequestImages {
 }
 
 /// Indicating either entire image or just metadata availability
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ImageOrMetadataAvailable {
     ImageAvailable(#[ignore_malloc_size_of = "Arc"] Arc<Image>, ServoUrl),
     MetadataAvailable(ImageMetadata),
@@ -73,7 +73,7 @@ pub enum ImageResponse {
 }
 
 /// The current state of an image in the cache.
-#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum ImageState {
     Pending(PendingImageId),
     LoadError,
