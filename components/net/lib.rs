@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
-
+#![feature(rustc_private)]
+extern crate backtrace;
 extern crate base64;
 extern crate brotli;
 extern crate cookie as cookie_rs;

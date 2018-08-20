@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use backtrace::Backtrace;
 use app_units::{Au, AU_PER_PX};
 use cssparser::{Parser, ParserInput};
 use document_loader::{LoadType, LoadBlocker};
@@ -286,10 +287,12 @@ impl HTMLImageElement {
             }
 
             Err(ImageState::LoadError) => {
+                println!("Inside LoadError");
                 self.process_image_response(ImageResponse::None);
             }
 
             Err(ImageState::NotRequested(id)) => {
+                println!("Inside NotRequested");
                 add_cache_listener_for_element(image_cache, id, self);
                 self.fetch_request(img_url, id);
             }
@@ -410,6 +413,7 @@ impl HTMLImageElement {
                                                      src: DOMString,
                                                      generation: u32,
                                                      selected_pixel_density: f64) {
+        println!("Inside process_image_response_for_environmental_change");
         match image {
             ImageResponse::Loaded(image, url) | ImageResponse::PlaceholderLoaded(image, url) => {
                 self.pending_request.borrow_mut().metadata = Some(ImageMetadata {
@@ -421,9 +425,13 @@ impl HTMLImageElement {
                 self.finish_reacting_to_environment_change(src, generation, selected_pixel_density);
             },
             ImageResponse::MetadataLoaded(meta) => {
+                println!("Inside MetadataLoaded");
+                println!("Backtrace when we reach a metadata value {:?} ", Backtrace::new());
                 self.pending_request.borrow_mut().metadata = Some(meta);
             },
             ImageResponse::None => {
+                println!("Inside None");
+                println!("Backtrace when we reach a none value {:?} ", Backtrace::new());
                 self.abort_request(State::Unavailable, ImageRequestPhase::Pending);
             },
         };
@@ -957,6 +965,7 @@ impl HTMLImageElement {
             let generation = elem.generation.get();
             ROUTER.add_route(responder_receiver.to_opaque(), Box::new(move |message| {
                 debug!("Got image {:?}", message);
+                println!("Got image {:?}", message);
                 // Return the image via a message to the script thread, which marks
                 // the element as dirty and triggers a reflow.
                 let element = trusted_node.clone();
@@ -1439,28 +1448,12 @@ impl VirtualMethods for HTMLImageElement {
         self.update_the_image_data();
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
-        if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
-        }
-        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
-            if parent.is::<HTMLPictureElement>() {
-                self.update_the_image_data();
-            }
-        }
-    }
-
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &local_name!("src") => self.update_the_image_data(),
             &local_name!("srcset") => self.update_the_image_data(),
             _ => {},
-        }
-        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
-            if parent.is::<HTMLPictureElement>() {
-                self.update_the_image_data();
-            }
         }
     }
 

@@ -17,7 +17,8 @@
 
 #![plugin(script_plugins)]
 #![cfg_attr(not(feature = "unrooted_must_root_lint"), allow(unknown_lints))]
-
+#![feature(rustc_private)]
+extern crate backtrace;
 extern crate app_units;
 extern crate audio_video_metadata;
 extern crate base64;
