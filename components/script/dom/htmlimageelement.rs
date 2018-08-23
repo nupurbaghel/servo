@@ -265,7 +265,7 @@ impl HTMLImageElement {
 
             image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
         }
-
+        println!("reached after cache listener");
         let window = window_from_node(self);
         let image_cache = window.image_cache();
         let response =
@@ -941,6 +941,7 @@ impl HTMLImageElement {
     /// <https://html.spec.whatwg.org/multipage/#img-environment-changes>
     pub fn react_to_environment_changes(&self) {
         // Step 1
+        self.generation.set(self.generation.get() + 1);
         let task = ImageElementMicrotask::EnvironmentChangesTask {
             elem: DomRoot::from_ref(self),
             generation: self.generation.get(),
@@ -956,6 +957,7 @@ impl HTMLImageElement {
                                           elem: &HTMLImageElement,
                                           selected_source: String,
                                           selected_pixel_density: f64) {
+            println!("Inside add cache listener for element");
             let trusted_node = Trusted::new(elem);
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
 
@@ -1034,10 +1036,12 @@ impl HTMLImageElement {
         let window = window_from_node(self);
         let image_cache = window.image_cache();
         // Step 14
+        println!("Step 14 react sync steps url:{}",img_url);
         let response =
             image_cache.find_image_or_metadata(img_url.clone().into(),
                                                UsePlaceholder::No,
                                                CanRequestImages::Yes);
+        println!("Fetch Image Response type(env changes) = {:?}", response);
         match response {
             Ok(ImageOrMetadataAvailable::ImageAvailable(_image, _url)) => {
                 // Step 15
@@ -1226,6 +1230,7 @@ impl MicrotaskRunnable for ImageElementMicrotask {
                 }
             },
             &ImageElementMicrotask::EnvironmentChangesTask { ref elem, ref generation } => {
+                println!("calling react_to_environment_changes_sync_steps");
                 elem.react_to_environment_changes_sync_steps(*generation);
             },
         }

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// use backtrace::Backtrace;
 use embedder_traits::resources::{self, Resource};
 use immeta::load_from_buf;
 use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError};
@@ -153,6 +154,7 @@ impl AllPendingLoads {
 
     fn get_cached<'a>(&'a mut self, url: ServoUrl, can_request: CanRequestImages)
                       -> CacheResult<'a> {
+        println!("inside get_cached");
         match self.url_to_load_key.entry(url.clone()) {
             Occupied(url_entry) => {
                 let load_key = url_entry.get();
@@ -160,16 +162,23 @@ impl AllPendingLoads {
             }
             Vacant(url_entry) => {
                 if can_request == CanRequestImages::No {
+                    println!("get_cached no request images ");
                     return CacheResult::Miss(None);
                 }
 
                 let load_key = self.keygen.next();
                 url_entry.insert(load_key);
-
+                println!("load_key: {:?}",load_key);
+                println!("url_entry: {:?}",url.clone());
                 let pending_load = PendingLoad::new(url);
                 match self.loads.entry(load_key) {
-                    Occupied(_) => unreachable!(),
+                    Occupied(_) =>{ 
+                        println!("get_cached inside occupied");
+                        unreachable!()
+                    },
                     Vacant(load_entry) => {
+                        println!("get_cached inside vacant");
+                        // println!("Backtrace when inside vacant {:?} ", Backtrace::new());
                         let mut_load = load_entry.insert(pending_load);
                         CacheResult::Miss(Some((load_key, mut_load)))
                     }
@@ -419,9 +428,11 @@ impl ImageCache for ImageCacheImpl {
                               can_request: CanRequestImages)
                               -> Result<ImageOrMetadataAvailable, ImageState> {
         debug!("Find image or metadata for {}", url);
+        println!("Find image or metadata for {}", url);
         let mut store = self.store.lock().unwrap();
         if let Some(result) = store.get_completed_image_if_available(&url, use_placeholder) {
             debug!("{} is available", url);
+            println!("{} is available", url);
             return result;
         }
 
@@ -431,22 +442,27 @@ impl ImageCache for ImageCacheImpl {
                 CacheResult::Hit(key, pl) => match (&pl.result, &pl.metadata) {
                     (&Some(Ok(_)), _) => {
                         debug!("Sync decoding {} ({:?})", url, key);
+                        println!("Hit: Sync decoding {} ({:?})", url, key);
                         decode_bytes_sync(key, &pl.bytes.as_slice())
                     }
                     (&None, &Some(ref meta)) => {
                         debug!("Metadata available for {} ({:?})", url, key);
+                        println!("Hit: Metadata available for {} ({:?})", url, key);
                         return Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone()))
                     }
                     (&Some(Err(_)), _) | (&None, &None) => {
                         debug!("{} ({:?}) is still pending", url, key);
+                        println!("Hit: {} ({:?}) is still pending", url, key);
                         return Err(ImageState::Pending(key));
                     }
                 },
                 CacheResult::Miss(Some((key, _pl))) => {
                     debug!("Should be requesting {} ({:?})", url, key);
+                    println!("Miss: Should be requesting {} ({:?})", url, key);
                     return Err(ImageState::NotRequested(key));
                 }
                 CacheResult::Miss(None) => {
+                    println!("Miss(none): reached 1 CacheResult::Miss(None)");
                     debug!("Couldn't find an entry for {}", url);
                     return Err(ImageState::LoadError);
                 }
@@ -458,6 +474,7 @@ impl ImageCache for ImageCacheImpl {
         // and ignore the async decode when it finishes later.
         // TODO: make this behaviour configurable according to the caller's needs.
         store.handle_decoder(decoded);
+        println!("reached 2 will call get_completed_image_if_available which will error");
         match store.get_completed_image_if_available(&url, use_placeholder) {
             Some(result) => result,
             None => Err(ImageState::LoadError),
